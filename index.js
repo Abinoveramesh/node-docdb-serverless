@@ -1,32 +1,45 @@
-const { MongoClient } = require("mongodb");
+require('dotenv').config();
+const express = require('express');
+const { MongoClient } = require('mongodb');
+const awsServerlessExpress = require('aws-serverless-express');
 
-const uri = process.env.DOCDB_URI;
+const app = express();
+const port = process.env.PORT || 3000;
+
 let cachedClient = null;
 
-exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-
+async function connectToDatabase() {
   if (!cachedClient) {
-    cachedClient = new MongoClient(uri, {
+    cachedClient = new MongoClient(process.env.DOCDB_URI, {
       tls: true,
-      tlsCAFile: './rds-combined-ca-bundle.pem', // Remove this if not needed
-      serverSelectionTimeoutMS: 5000
+      tlsCAFile: './rds-combined-ca-bundle.pem',
+      serverSelectionTimeoutMS: 5000,
     });
 
     await cachedClient.connect();
-    console.log("✅ Connected to DocumentDB");
+    console.log('✅ Connected to DocumentDB');
   }
 
-  const db = cachedClient.db("testdb");
-  const collection = db.collection("testCollection");
+  return cachedClient.db('testdb');
+}
 
-  const items = await collection.find({}).toArray();
+// Express route
+app.get('/', async (req, res) => {
+  try {
+    const db = await connectToDatabase();
+    const collection = db.collection('testCollection');
+    const items = await collection.find({}).toArray();
+    res.status(200).json({ items });
+  } catch (error) {
+    console.error('❌ Error:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ items }),
-    headers: {
-      "Content-Type": "application/json"
-    }
-  };
+// Create server
+const server = awsServerlessExpress.createServer(app);
+
+// Export Lambda handler
+exports.handler = (event, context) => {
+  return awsServerlessExpress.proxy(server, event, context);
 };
