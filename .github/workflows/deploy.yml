@@ -9,31 +9,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install unzip, curl (for .pem download)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip curl
+      - name: Install dependencies
+        run: npm install
 
-      - name: Download global-bundle.pem (DocumentDB trust store)
+      - name: Download RDS global CA bundle
         run: |
-          mkdir -p certs
-          curl -o certs/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+          wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -O global-bundle.pem
 
-      - name: Zip source code with certs
+      - name: Zip Lambda function
         run: |
-          zip -r lambda.zip . -x "*.git*" -x "*.github*"
+          zip -r lambda.zip . -x "*.git*" "node_modules/aws-sdk/*"
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4.1.0
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Deploy to AWS Lambda
+      - name: Deploy to Lambda
         run: |
           aws lambda update-function-code \
             --function-name node-docdb-app \
