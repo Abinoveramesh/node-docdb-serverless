@@ -12,7 +12,7 @@ async function connectToDatabase() {
   if (!cachedClient) {
     cachedClient = new MongoClient(process.env.DOCDB_URI, {
       tls: true,
-      tlsCAFile: './rds-combined-ca-bundle.pem',
+      tlsCAFile: './global-bundle.pem',
       serverSelectionTimeoutMS: 5000,
     });
 
