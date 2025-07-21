@@ -1,10 +1,9 @@
 require("dotenv").config();
 const express = require("express");
+const awsServerlessExpress = require("aws-serverless-express");
 const connectDB = require("./db/connection");
 
 const app = express();
-const port = process.env.PORT || 3000;
-
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -17,6 +16,10 @@ app.get("/users", async (req, res) => {
   res.json(users);
 });
 
-app.listen(port, () => {
-  console.log(`🟢 Server running on http://localhost:${port}`);
-});
+// Create the server for AWS Lambda
+const server = awsServerlessExpress.createServer(app);
+
+// This is what Lambda looks for: `handler`
+exports.handler = (event, context) => {
+  awsServerlessExpress.proxy(server, event, context);
+};
