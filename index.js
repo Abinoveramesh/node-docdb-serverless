@@ -1,25 +1,32 @@
-require("dotenv").config();
-const express = require("express");
-const awsServerlessExpress = require("aws-serverless-express");
-const connectDB = require("./db/connection");
+const { MongoClient } = require("mongodb");
 
-const app = express();
-app.use(express.json());
+const uri = process.env.DOCDB_URI;
+let cachedClient = null;
 
-app.get("/", (req, res) => {
-  res.send("🚀 Node.js app connected to DocumentDB!");
-});
+exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
 
-app.get("/users", async (req, res) => {
-  const db = await connectDB();
-  const users = await db.collection("users").find().toArray();
-  res.json(users);
-});
+  if (!cachedClient) {
+    cachedClient = new MongoClient(uri, {
+      tls: true,
+      tlsCAFile: './rds-combined-ca-bundle.pem', // Remove this if not needed
+      serverSelectionTimeoutMS: 5000
+    });
 
-// Create the server for AWS Lambda
-const server = awsServerlessExpress.createServer(app);
+    await cachedClient.connect();
+    console.log("✅ Connected to DocumentDB");
+  }
 
-// This is what Lambda looks for: `handler`
-exports.handler = (event, context) => {
-  awsServerlessExpress.proxy(server, event, context);
+  const db = cachedClient.db("testdb");
+  const collection = db.collection("testCollection");
+
+  const items = await collection.find({}).toArray();
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ items }),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  };
 };
