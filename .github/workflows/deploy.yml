@@ -27,7 +27,8 @@ jobs:
 
       - name: Create Lambda zip
         run: |
-          zip -r lambda.zip . -i "certs/*" -x ".git/*" "tests/*" ".github/*" "*.gitignore"
+          zip -r lambda.zip . -x ".git/*" ".github/*" "tests/*" "*.gitignore"
+
 
 
       - name: Configure AWS credentials
