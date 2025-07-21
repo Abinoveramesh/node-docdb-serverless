@@ -15,21 +15,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # Match your Lambda runtime
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Download RDS global bundle
         run: |
           mkdir -p certs
           wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -O certs/global-bundle.pem
 
+      - name: Prepare environment file (optional)
+        run: |
+          cp .env.production .env  # if needed
+
       - name: Create Lambda zip
         run: |
           zip -r lambda.zip . -x ".git/*" ".github/*" "tests/*" "*.gitignore"
-
-
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4.1.0
