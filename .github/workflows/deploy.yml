@@ -25,9 +25,6 @@ jobs:
           mkdir -p certs
           wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -O certs/global-bundle.pem
 
-      - name: Prepare environment file (optional)
-        run: |
-          cp .env.production .env  # if needed
 
       - name: Create Lambda zip
         run: |
